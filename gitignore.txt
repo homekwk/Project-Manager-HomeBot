@@ -1,0 +1,11 @@
+# Google Apps Script
+.clasp.json
+appsscript.json
+
+# Environment / Secrets
+.env
+secrets.js
+
+# OS
+.DS_Store
+Thumbs.db
