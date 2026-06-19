@@ -347,6 +347,19 @@ const PM_USER_IDS               = ["หาได้ใน Step 11"];
   - ส่งเข้า Group พร้อมระบุ Project, NO, Item, Responsible, Due Date
 - อัปเดต `createDailyTriggers()` เพิ่ม `deliverableReminder`
 
+### v2.5.0 — Daily Summary Redesign
+- เพิ่ม `DASHBOARD_URL` ใน Config section
+- Daily Summary รวมทุก Engineer ใน **1 Message** (ไม่แยกทีละคนแล้ว)
+- Format ใหม่ต่อ Task: `[ลำดับ]. [CUSTOMER] | [TASK] | [วันคงเหลือ]`
+- วันคงเหลือ format:
+  - ปกติ → `เหลือ X วัน`
+  - ครบกำหนดวันนี้ → `🟠 ครบกำหนดวันนี้`
+  - เลยกำหนด → `🔴 เลยกำหนด X วัน`
+  - ไม่มี Due Date → ไม่แสดง
+- Engineer ที่ Done ทุก Task แสดง `ว่างงาน ✅`
+- แสดงเฉพาะ Task ที่ยังค้างอยู่ (ไม่แสดง DONE/COMPLETED)
+- เพิ่ม Dashboard Link ด้านล่าง Summary
+
 ---
 
 ## License

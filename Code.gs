@@ -37,6 +37,9 @@ const COL_NOTE         = "NOTE";
 const COL_LINE_USER_ID = "Line User ID";
 const COL_CUSTOMER     = "CUSTOMER";
 
+// ---- Dashboard URL ----
+const DASHBOARD_URL = "https://gemini.google.com/share/e209e6dae5ec";
+
 // ---- Sheets to exclude from Task Summary ----
 const EXCLUDE_SHEETS = [LEAVE_SHEET_NAME, "UID_GID"];
 
@@ -773,41 +776,45 @@ function sendSummaryPerEngineer(tasks, dateStr) {
     byEngineer[t.engineer].push(t);
   });
 
+  // ✅ รวมทุก Engineer ใน 1 Message
+  let msg = `🌅 Daily Task Summary — ${dateStr}\n${"─".repeat(26)}\n`;
+
   Object.keys(byEngineer).sort().forEach(name => {
     const list    = byEngineer[name];
-    const done    = list.filter(t => DONE_STATUSES.includes(t.status?.toLowerCase())).length;
     const pending = list.filter(t => !DONE_STATUSES.includes(t.status?.toLowerCase()));
 
-    let msg = `🌅 Daily Task Summary — ${dateStr}\n${"─".repeat(26)}\n\n`;
+    msg += `\n👤 ${name}`;
 
-    // ถ้า Done ทุก Task
+    // ว่างงาน — Done ทุก Task
     if (pending.length === 0) {
-      msg += `👤 ${name} (${done}/${list.length} Done) ✅`;
-      pushMessageToGroup(LINE_GROUP_ID, msg);
+      msg += ` — ว่างงาน ✅\n`;
       return;
     }
 
-    msg += `👤 ${name} (${done}/${list.length} Done)\n`;
+    msg += ` — ${pending.length} tasks remaining\n`;
 
-    pending.forEach(t => {
-      const due    = t.dueDate ? new Date(t.dueDate) : null;
+    pending.forEach((t, i) => {
+      const due  = t.dueDate ? new Date(t.dueDate) : null;
       if (due) due.setHours(0, 0, 0, 0);
-      const diff   = due ? Math.round((due - today) / 86400000) : null;
-      const dueTxt = due ? Utilities.formatDate(due, Session.getScriptTimeZone(), "dd/MM/yyyy") : "ไม่ระบุ";
-      const urgency = diff === null ? ""
-        : diff < 0   ? " 🔴 เลยกำหนด!"
-        : diff === 0 ? " 🟠 ครบกำหนดวันนี้!"
-        : diff <= 3  ? ` ⚠️ เหลือ ${diff} วัน` : "";
-      msg += `    📌 ${t.status} | 📆 ${dueTxt}${urgency}\n`;
-      msg += `    🏢 ${t.customer || "-"}  • [${t.type}] ${t.task}\n`;
-      msg += `       📝 ${t.desc || "-"}\n`;
-    });
+      const diff = due ? Math.round((due - today) / 86400000) : null;
 
-    pushMessageToGroup(LINE_GROUP_ID, msg);
+      let dayTxt = "";
+      if (diff === null)     dayTxt = "";
+      else if (diff < 0)     dayTxt = ` | 🔴 เลยกำหนด ${Math.abs(diff)} วัน`;
+      else if (diff === 0)   dayTxt = ` | 🟠 ครบกำหนดวันนี้`;
+      else                   dayTxt = ` | เหลือ ${diff} วัน`;
+
+      msg += `${i + 1}. ${t.customer || "-"} | ${t.task}${dayTxt}\n`;
+    });
   });
+
+  msg += `\n${"─".repeat(26)}\n🔗 Dashboard: ${DASHBOARD_URL}`;
+
+  pushMessageToGroup(LINE_GROUP_ID, msg);
 }
 
 function buildDailySummary(tasks, dateStr) {
+  // ✅ ใช้ format เดียวกับ sendSummaryPerEngineer
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -817,32 +824,37 @@ function buildDailySummary(tasks, dateStr) {
     byEngineer[t.engineer].push(t);
   });
 
-  let msg = `🌅 Daily Task Summary\n📅 ${dateStr}\n${"─".repeat(26)}\n`;
+  let msg = `🌅 Daily Task Summary — ${dateStr}\n${"─".repeat(26)}\n`;
 
   Object.keys(byEngineer).sort().forEach(name => {
     const list    = byEngineer[name];
-    const done    = list.filter(t => DONE_STATUSES.includes(t.status?.toLowerCase())).length;
     const pending = list.filter(t => !DONE_STATUSES.includes(t.status?.toLowerCase()));
 
-    msg += `\n👤 ${name} (${done}/${list.length} Done)\n`;
-    pending.forEach(t => {
-      const due    = t.dueDate ? new Date(t.dueDate) : null;
+    msg += `\n👤 ${name}`;
+
+    if (pending.length === 0) {
+      msg += ` — ว่างงาน ✅\n`;
+      return;
+    }
+
+    msg += ` — ${pending.length} tasks remaining\n`;
+
+    pending.forEach((t, i) => {
+      const due  = t.dueDate ? new Date(t.dueDate) : null;
       if (due) due.setHours(0, 0, 0, 0);
-      const diff   = due ? Math.round((due - today) / 86400000) : null;
-      // ✅ Due Date format เปลี่ยนเป็น dd/MM/yyyy
-      const dueTxt = due ? Utilities.formatDate(due, Session.getScriptTimeZone(), "dd/MM/yyyy") : "ไม่ระบุ";
-      const urgency = diff === null ? ""
-        : diff < 0   ? " 🔴 เลยกำหนด!"
-        : diff === 0 ? " 🟠 ครบกำหนดวันนี้!"
-        : diff <= 3  ? ` ⚠️ เหลือ ${diff} วัน` : "";
-      // ✅ Format ใหม่: STATUS | DueDate → CUSTOMER • [TYPE] TASK → Description
-      msg += `    📌 ${t.status} | 📆 ${dueTxt}${urgency}\n`;
-      msg += `    🏢 ${t.customer || "-"}  • [${t.type}] ${t.task}\n`;
-      msg += `       📝 ${t.desc || "-"}\n`;
+      const diff = due ? Math.round((due - today) / 86400000) : null;
+
+      let dayTxt = "";
+      if (diff === null)   dayTxt = "";
+      else if (diff < 0)   dayTxt = ` | 🔴 เลยกำหนด ${Math.abs(diff)} วัน`;
+      else if (diff === 0) dayTxt = ` | 🟠 ครบกำหนดวันนี้`;
+      else                 dayTxt = ` | เหลือ ${diff} วัน`;
+
+      msg += `${i + 1}. ${t.customer || "-"} | ${t.task}${dayTxt}\n`;
     });
   });
 
-  msg += `\n${"─".repeat(26)}\n💬 พิมพ์ ${BOT_NAME} task เพื่อดูรายละเอียด`;
+  msg += `\n${"─".repeat(26)}\n🔗 Dashboard: ${DASHBOARD_URL}`;
   return msg;
 }
 
